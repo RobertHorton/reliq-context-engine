@@ -266,8 +266,10 @@ def benchmark_case(case: str, task: TaskSpec, iterations: int) -> dict[str, Any]
             evolution_logged.append(evolved)
 
     notes = []
-    if case in {"build_prompt", "run_cognition.persist_false", "run_cognition.persist_true"}:
-        notes.append("build_prompt currently triggers retrieval again through ContextEngine.build_prompt().")
+    if case == "build_prompt":
+        notes.append("build_prompt measures retrieval plus prompt formatting from a task spec.")
+    if case in {"run_cognition.persist_false", "run_cognition.persist_true"}:
+        notes.append("run_cognition now reuses the previously built context when generating the prompt.")
     if case == "memory_search":
         notes.append("memory_search includes JSON write cost because access_count is persisted.")
 

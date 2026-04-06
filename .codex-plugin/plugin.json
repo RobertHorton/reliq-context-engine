@@ -1,6 +1,6 @@
 {
   "name": "reliq-context-engine",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Task-scoped context, scoped memory, and cognition tooling for Reliq and other AI systems.",
   "author": {
     "name": "Robert Horton",
@@ -28,7 +28,9 @@
       "Write",
       "Structured Context",
       "Scoped Memory",
-      "MCP"
+      "MCP",
+      "Research Swarm",
+      "Scheduler Status"
     ],
     "websiteURL": "https://github.com/RobertHorton/reliq-context-engine",
     "privacyPolicyURL": "https://github.com/RobertHorton/reliq-context-engine",
@@ -36,7 +38,9 @@
     "defaultPrompt": [
       "Build context for this implementation task.",
       "Search scoped memory for this debugging issue.",
-      "Generate a cognition payload for this feature request."
+      "Generate a cognition payload for this feature request.",
+      "Show scheduler and dashboard status for this local Reliq node.",
+      "Run the lightweight research swarm for this goal."
     ],
     "brandColor": "#2563EB"
   }

@@ -48,14 +48,18 @@ class ContextEngine:
             notes.append("No relevant memory hits found.")
         return BuiltContext(task=task_spec, knowledge=knowledge, memory=memory, notes=notes)
 
+    def build_prompt_from_context(self, context: BuiltContext) -> str:
+        return build_prompt(context)
+
     def build_prompt(self, task: str | dict | TaskSpec) -> str:
-        return build_prompt(self.build_context(task))
+        return self.build_prompt_from_context(self.build_context(task))
 
     def process_interaction(self, user_input: str, response: str | None = None, task: str | dict | TaskSpec | None = None) -> list[MemoryItem]:
         return self.memory.process_interaction(user_input, response, task=task)
 
     def run(self, task: str | dict | TaskSpec, runner: Callable[[str], str]) -> str:
-        prompt = self.build_prompt(task)
+        context = self.build_context(task)
+        prompt = self.build_prompt_from_context(context)
         response = runner(prompt)
         self.process_interaction(TaskSpec.from_any(task).task, response, task)
         return response

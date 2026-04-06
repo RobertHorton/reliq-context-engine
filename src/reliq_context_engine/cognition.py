@@ -51,7 +51,7 @@ class UnifiedCognitionLayer:
             metadata=metadata or {},
         )
         context = self.context_engine.build_context(task)
-        prompt = self.context_engine.build_prompt(task)
+        prompt = self.context_engine.build_prompt_from_context(context)
         response = runner(prompt) if runner is not None else None
         memory_updates = self.context_engine.process_interaction(user_input, response, task) if persist else []
         evolution_logged = self.evolution.evolution_step(prompt, response, task=task) if response else False

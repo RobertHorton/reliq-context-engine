@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "reliq-context-engine"
-version = "0.2.0"
+version = "0.3.0"
 description = "Task-scoped context, scoped memory, and cognition tooling for Reliq and other AI systems."
 readme = "README.md"
 requires-python = ">=3.10"

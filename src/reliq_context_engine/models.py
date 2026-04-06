@@ -174,3 +174,84 @@ class CognitionResult:
             "memory_updates": [item.to_dict() for item in self.memory_updates],
             "evolution_logged": self.evolution_logged,
         }
+
+
+@dataclass
+class AgentProfile:
+    name: str
+    vram_gb: float
+    priority: int
+    concurrency: int = 1
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class RuntimeStatus:
+    mode: str
+    gpu_available: bool
+    gpu_name: str | None = None
+    gpu_utilization_pct: float | None = None
+    vram_total_gb: float | None = None
+    vram_used_gb: float | None = None
+    vram_free_gb: float | None = None
+    notes: list[str] = field(default_factory=list)
+    generated_at: str = field(default_factory=utc_now)
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class SchedulerDecision:
+    allowed: bool
+    mode: str
+    agent_type: str
+    required_vram_gb: float
+    available_vram_gb: float | None
+    reason: str
+    profile: AgentProfile
+    generated_at: str = field(default_factory=utc_now)
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["profile"] = self.profile.to_dict()
+        return payload
+
+
+@dataclass
+class DashboardTask:
+    task_id: str
+    goal: str
+    agent_type: str
+    status: str
+    created_at: str = field(default_factory=utc_now)
+    updated_at: str = field(default_factory=utc_now)
+    detail: str | None = None
+    evaluation_score: float | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class SwarmRunResult:
+    goal: str
+    agent_type: str
+    decision: SchedulerDecision
+    cognition: CognitionResult | None = None
+    evaluation_score: float | None = None
+    task_id: str | None = None
+    generated_at: str = field(default_factory=utc_now)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "goal": self.goal,
+            "agent_type": self.agent_type,
+            "decision": self.decision.to_dict(),
+            "cognition": self.cognition.to_dict() if self.cognition is not None else None,
+            "evaluation_score": self.evaluation_score,
+            "task_id": self.task_id,
+            "generated_at": self.generated_at,
+        }

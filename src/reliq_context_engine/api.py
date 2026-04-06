@@ -7,11 +7,17 @@ from pydantic import BaseModel, Field
 
 from .cognition import UnifiedCognitionLayer
 from .context_engine import ContextEngine
+from .dashboard.status import DashboardState
 from .models import MemoryItem, TaskSpec
+from .research.swarm import ResearchSwarm
+from .resources.scheduler import VramAwareScheduler
 
-app = FastAPI(title="Reliq Context Engine", version="0.2.0")
+app = FastAPI(title="Reliq Context Engine", version="0.3.0")
 engine = ContextEngine()
 ucl = UnifiedCognitionLayer(context_engine=engine)
+scheduler = VramAwareScheduler()
+dashboard = DashboardState()
+swarm = ResearchSwarm(cognition=ucl, scheduler=scheduler, dashboard=dashboard)
 
 
 class TaskRequest(BaseModel):
@@ -48,6 +54,23 @@ class InteractionRequest(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
+class SwarmRequest(BaseModel):
+    goal: str
+    agent_type: str = "research"
+    task_type: str = "research"
+    user_id: str | None = None
+    session_id: str | None = None
+    persist: bool = False
+
+
+class ParallelSwarmRequest(BaseModel):
+    goals: list[str] = Field(default_factory=list)
+    agent_type: str = "research"
+    task_type: str = "research"
+    user_id: str | None = None
+    persist: bool = False
+
+
 def _task_spec(request: TaskRequest) -> TaskSpec:
     return TaskSpec(
         task=request.task,
@@ -77,6 +100,16 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/dashboard/status")
+def dashboard_status() -> dict[str, Any]:
+    return dashboard.summary(runtime=scheduler.get_status())
+
+
+@app.get("/dashboard/history")
+def dashboard_history(limit: int = Query(20, ge=1, le=100)) -> dict[str, Any]:
+    return {"results": dashboard.history(limit=limit)}
+
+
 @app.post("/context/build")
 def context_build(request: TaskRequest) -> dict[str, Any]:
     built = engine.build_context(_task_spec(request))
@@ -102,6 +135,31 @@ def cognition_run(request: TaskRequest) -> dict[str, Any]:
         persist=False,
     )
     return result.to_dict()
+
+
+@app.post("/swarm/run")
+def swarm_run(request: SwarmRequest) -> dict[str, Any]:
+    result = swarm.run(
+        request.goal,
+        agent_type=request.agent_type,
+        task_type=request.task_type,
+        user_id=request.user_id,
+        session_id=request.session_id,
+        persist=request.persist,
+    )
+    return result.to_dict()
+
+
+@app.post("/swarm/run-parallel")
+def swarm_run_parallel(request: ParallelSwarmRequest) -> dict[str, Any]:
+    results = swarm.run_parallel(
+        request.goals,
+        agent_type=request.agent_type,
+        task_type=request.task_type,
+        user_id=request.user_id,
+        persist=request.persist,
+    )
+    return {"results": [item.to_dict() for item in results]}
 
 
 @app.post("/memory/items")

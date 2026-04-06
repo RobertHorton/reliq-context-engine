@@ -139,8 +139,10 @@ def test_context_injection_is_deterministic_and_minimal(tmp_path: Path) -> None:
     task = TaskSpec(task="Create a dark prompt input component", type="ui")
     prompt_one = engine.build_prompt(task)
     prompt_two = engine.build_prompt(task)
+    prompt_from_context = engine.build_prompt_from_context(engine.build_context(task))
 
     assert prompt_one == prompt_two
+    assert prompt_one == prompt_from_context
     assert prompt_one.count("RELEVANT MEMORY") == 1
     assert prompt_one.count("[1]") >= 2
 

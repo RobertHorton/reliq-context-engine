@@ -41,6 +41,9 @@ Core principle:
 - [api.py](src/reliq_context_engine/api.py): FastAPI surface for other tools and plugins
 - [cli.py](src/reliq_context_engine/cli.py): simple command-line entrypoint
 - [mcp_server.py](src/reliq_context_engine/mcp_server.py): MCP server surface for direct tool use by Codex, Reliq, and other AI systems
+- [resources/scheduler.py](src/reliq_context_engine/resources/scheduler.py): lightweight VRAM-aware scheduler and runtime status reader
+- [dashboard/status.py](src/reliq_context_engine/dashboard/status.py): queue and history tracking for a local control surface
+- [research/swarm.py](src/reliq_context_engine/research/swarm.py): scheduler-gated research swarm runner layered on top of cognition
 
 ## Repo Goals
 
@@ -118,6 +121,10 @@ Key endpoints:
 - `POST /context/build`
 - `POST /context/prompt`
 - `POST /cognition/run`
+- `GET /dashboard/status`
+- `GET /dashboard/history`
+- `POST /swarm/run`
+- `POST /swarm/run-parallel`
 - `POST /memory/items`
 - `POST /memory/process`
 - `GET /memory/search`
@@ -166,6 +173,8 @@ The MCP server exposes these tools:
 - `build_context`
 - `build_prompt`
 - `run_cognition`
+- `dashboard_status`
+- `run_research_swarm`
 - `add_memory_item`
 - `process_interaction`
 - `search_memory`
@@ -211,4 +220,6 @@ If you want to point the engine at an external Reliq knowledge base instead, cop
 - add FAISS chunk builder
 - add more task-aware retrieval profiles
 - add API and MCP smoke tests
+- add websocket streaming for dashboard updates
+- expand the research swarm from local cognition orchestration to true multi-agent ingestion/synthesis/validation roles
 - add install scripts for Codex / Claude Desktop / other MCP hosts

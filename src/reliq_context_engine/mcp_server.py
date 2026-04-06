@@ -4,10 +4,16 @@ from typing import Any
 
 from .cognition import UnifiedCognitionLayer
 from .context_engine import ContextEngine
+from .dashboard.status import DashboardState
 from .models import MemoryItem, TaskSpec
+from .research.swarm import ResearchSwarm
+from .resources.scheduler import VramAwareScheduler
 
 engine = ContextEngine()
 ucl = UnifiedCognitionLayer(context_engine=engine)
+scheduler = VramAwareScheduler()
+dashboard = DashboardState()
+swarm = ResearchSwarm(cognition=ucl, scheduler=scheduler, dashboard=dashboard)
 
 
 def _task(
@@ -154,6 +160,31 @@ def _register_tools(mcp: Any) -> None:
     def health() -> dict[str, str]:
         """Simple health check for the Reliq Context Engine MCP server."""
         return {"status": "ok"}
+
+    @mcp.tool()
+    def dashboard_status() -> dict[str, Any]:
+        """Return scheduler and queue visibility for the local Reliq dashboard foundation."""
+        return dashboard.summary(runtime=scheduler.get_status())
+
+    @mcp.tool()
+    def run_research_swarm(
+        goal: str,
+        agent_type: str = "research",
+        task_type: str = "research",
+        user_id: str | None = None,
+        session_id: str | None = None,
+        persist: bool = False,
+    ) -> dict[str, Any]:
+        """Run the lightweight research swarm through scheduler-gated cognition."""
+        result = swarm.run(
+            goal,
+            agent_type=agent_type,
+            task_type=task_type,
+            user_id=user_id,
+            session_id=session_id,
+            persist=persist,
+        )
+        return result.to_dict()
 
 
 def main() -> None:
