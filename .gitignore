@@ -21,4 +21,6 @@ knowledge/faiss/*
 !knowledge/faiss/.gitkeep
 datasets/*
 !datasets/.gitkeep
+benchmark-results/*
+!benchmark-results/.gitkeep
 *.db

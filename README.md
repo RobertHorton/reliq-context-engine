@@ -81,6 +81,21 @@ Without them, the engine still works using wiki + keyword retrieval.
 python -m reliq_context_engine.cli --task "Create a dark themed prompt input component" --task-type ui
 ```
 
+## Run A Benchmark
+
+```powershell
+python -m reliq_context_engine.benchmark `
+  --tasks-file examples/benchmark_tasks.json `
+  --iterations 5 `
+  --output benchmark-results/latest.json
+```
+
+Or, after installing the package scripts:
+
+```powershell
+reliq-context-benchmark --iterations 5 --output benchmark-results/latest.json
+```
+
 Store response-derived memory in one pass:
 
 ```powershell

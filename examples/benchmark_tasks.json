@@ -1,0 +1,20 @@
+[
+  {
+    "task": "Create a dark themed prompt input component for the dashboard.",
+    "type": "ui",
+    "user_id": "benchmark-user",
+    "session_id": "bench-ui"
+  },
+  {
+    "task": "Diagnose a PM2 restart loop and suggest the most likely root cause.",
+    "type": "diagnostics",
+    "user_id": "benchmark-user",
+    "session_id": "bench-diag"
+  },
+  {
+    "task": "Implement a modular API wrapper for a local runtime provider.",
+    "type": "code",
+    "user_id": "benchmark-user",
+    "session_id": "bench-code"
+  }
+]

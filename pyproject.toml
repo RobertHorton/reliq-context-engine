@@ -20,6 +20,7 @@ dependencies = [
 [project.scripts]
 reliq-context = "reliq_context_engine.cli:main"
 reliq-context-mcp = "reliq_context_engine.mcp_server:main"
+reliq-context-benchmark = "reliq_context_engine.benchmark:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
