@@ -8,6 +8,8 @@ dist/
 build/
 *.egg-info/
 .DS_Store
-memory/
-knowledge/faiss/
+memory/*
+!memory/.gitkeep
+knowledge/faiss/*
+!knowledge/faiss/.gitkeep
 *.db

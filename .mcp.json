@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "reliq-context-engine": {
+      "command": "python",
+      "args": [
+        "-m",
+        "reliq_context_engine.mcp_server"
+      ],
+      "env": {
+        "PYTHONPATH": "src"
+      }
+    }
+  }
+}

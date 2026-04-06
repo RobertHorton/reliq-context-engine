@@ -30,6 +30,7 @@ Core principle:
 - [prompt_builder.py](src/reliq_context_engine/prompt_builder.py): deterministic prompt construction
 - [api.py](src/reliq_context_engine/api.py): FastAPI surface for other tools and plugins
 - [cli.py](src/reliq_context_engine/cli.py): simple command-line entrypoint
+- [mcp_server.py](src/reliq_context_engine/mcp_server.py): MCP server surface for direct tool use by Codex, Reliq, and other AI systems
 
 ## Repo Goals
 
@@ -46,6 +47,12 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
+
+Default local paths:
+- `knowledge/wiki/` for markdown knowledge
+- `memory/memory.json` for structured memory
+
+These are used automatically if you do not set environment variables.
 
 Optional semantic search dependencies:
 - `faiss-cpu`
@@ -94,11 +101,48 @@ from reliq_context_engine.context_engine import ContextEngine
 POST /context/prompt
 ```
 
-3. CLI
+3. MCP server
+
+```powershell
+python -m reliq_context_engine.mcp_server
+```
+
+4. CLI
 
 ```powershell
 python -m reliq_context_engine.cli --task "debug pm2 restart loop" --task-type diagnostics
 ```
+
+## MCP Tools
+
+The MCP server exposes these tools:
+- `build_context`
+- `build_prompt`
+- `add_memory_item`
+- `search_memory`
+- `health`
+
+Example startup:
+
+```powershell
+python -m reliq_context_engine.mcp_server
+```
+
+Example MCP config:
+- [mcp.json.example](mcp.json.example)
+- [./.mcp.json](.mcp.json) for repo-local defaults
+
+## Codex Plugin Support
+
+This repo now includes:
+- [./.mcp.json](.mcp.json): repo-local MCP server config
+- [./.codex-plugin/plugin.json](.codex-plugin/plugin.json): Codex plugin metadata
+
+If your MCP host starts servers from the repo root, the bundled `.mcp.json` works with the
+default `knowledge/wiki` and `memory/memory.json` directories.
+
+If you want to point the engine at an external Reliq knowledge base instead, copy
+`mcp.json.example` and replace the placeholder paths with absolute paths for your machine.
 
 ## Design Rules
 
@@ -112,5 +156,4 @@ python -m reliq_context_engine.cli --task "debug pm2 restart loop" --task-type d
 
 - add FAISS chunk builder
 - add more task-aware retrieval profiles
-- add MCP wrapper for direct tool use
-- add plugin manifests for Reliq and external agent systems
+- add install scripts for Codex / Claude Desktop / other MCP hosts

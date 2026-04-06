@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "reliq-context-engine": {
+      "command": "python",
+      "args": [
+        "-m",
+        "reliq_context_engine.mcp_server"
+      ],
+      "env": {
+        "PYTHONPATH": "C:\\path\\to\\reliq-context-engine\\src",
+        "RELIQ_KNOWLEDGE_WIKI": "C:\\path\\to\\knowledge\\wiki",
+        "RELIQ_MEMORY_FILE": "C:\\path\\to\\memory\\memory.json"
+      }
+    }
+  }
+}
