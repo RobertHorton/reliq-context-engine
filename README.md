@@ -173,6 +173,7 @@ Example MCP config:
 This repo now includes:
 - [./.mcp.json](.mcp.json): repo-local MCP server config
 - [./.codex-plugin/plugin.json](.codex-plugin/plugin.json): Codex plugin metadata
+- [./skills/reliq-cognition](skills/reliq-cognition): Codex skill for Reliq architecture and cognition workflow guidance
 
 If your MCP host starts servers from the repo root, the bundled `.mcp.json` works with the
 default `knowledge/wiki` and `memory/memory.json` directories.
