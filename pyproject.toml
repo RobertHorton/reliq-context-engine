@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reliq-context-engine"
+version = "0.1.0"
+description = "Task-scoped context engine for Reliq and other AI systems."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi",
+  "uvicorn",
+  "pydantic",
+  "faiss-cpu",
+  "sentence-transformers",
+]
+
+[project.scripts]
+reliq-context = "reliq_context_engine.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

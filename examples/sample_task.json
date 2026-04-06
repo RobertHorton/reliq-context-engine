@@ -1,0 +1,14 @@
+{
+  "task": "Create a dark themed prompt input component",
+  "type": "ui",
+  "target": "PromptInput.tsx",
+  "constraints": [
+    "controlled input",
+    "minimal styling",
+    "accessible labels"
+  ],
+  "metadata": {
+    "framework": "react",
+    "surface": "desktop"
+  }
+}
