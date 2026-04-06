@@ -86,14 +86,14 @@ python -m reliq_context_engine.cli --task "Create a dark themed prompt input com
 ```powershell
 python -m reliq_context_engine.benchmark `
   --tasks-file examples/benchmark_tasks.json `
-  --iterations 5 `
+  --iterations 25 `
   --output benchmark-results/latest.json
 ```
 
 Or, after installing the package scripts:
 
 ```powershell
-reliq-context-benchmark --iterations 5 --output benchmark-results/latest.json
+reliq-context-benchmark --iterations 25 --output benchmark-results/latest.json
 ```
 
 Store response-derived memory in one pass:

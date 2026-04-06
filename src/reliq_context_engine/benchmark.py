@@ -6,44 +6,56 @@ import statistics
 import tempfile
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .cognition import UnifiedCognitionLayer
 from .context_engine import ContextEngine
-from .models import MemoryItem, TaskSpec
+from .models import BuiltContext, MemoryItem, TaskSpec
+from .prompt_builder import build_prompt as build_prompt_from_context
 
 DEFAULT_TASKS = [
     {
         "task": "Create a dark themed prompt input component for the dashboard.",
         "type": "ui",
+        "target": "PromptInput.tsx",
+        "constraints": [
+            "controlled input",
+            "minimal styling",
+            "accessible labels",
+        ],
+        "metadata": {
+            "framework": "react",
+            "surface": "desktop",
+        },
         "user_id": "benchmark-user",
         "session_id": "bench-ui",
     },
     {
         "task": "Diagnose a PM2 restart loop and suggest the most likely root cause.",
         "type": "diagnostics",
+        "metadata": {
+            "surface": "ops",
+        },
         "user_id": "benchmark-user",
         "session_id": "bench-diag",
     },
     {
         "task": "Implement a modular API wrapper for a local runtime provider.",
         "type": "code",
+        "metadata": {
+            "surface": "runtime",
+        },
         "user_id": "benchmark-user",
         "session_id": "bench-code",
     },
 ]
 
+WARMUPS = 3
+
 
 def deterministic_runner(prompt: str) -> str:
     first_line = next((line.strip() for line in prompt.splitlines() if line.strip()), "TASK")
     return f"Implemented response for {first_line[:80]}"
-
-
-def time_call(fn, *args, **kwargs) -> tuple[Any, float]:
-    start = time.perf_counter()
-    value = fn(*args, **kwargs)
-    duration_ms = (time.perf_counter() - start) * 1000
-    return value, round(duration_ms, 3)
 
 
 def load_tasks(path: str | None) -> list[dict[str, Any]]:
@@ -55,9 +67,11 @@ def load_tasks(path: str | None) -> list[dict[str, Any]]:
 def seed_wiki(wiki_dir: Path) -> None:
     wiki_dir.mkdir(parents=True, exist_ok=True)
     docs = {
-        "UI.md": "# UI\n\nPrefer dark UI surfaces, controlled inputs, and consistent spacing.\n",
-        "Diagnostics.md": "# Diagnostics\n\nCheck restart loops, recent logs, and configuration drift first.\n",
-        "Runtime.md": "# Runtime\n\nProvider wrappers should stay modular and avoid direct model coupling.\n",
+        "UI.md": "# UI\n\nPrefer dark UI surfaces, controlled inputs, consistent spacing, and accessible labels.\n",
+        "Diagnostics.md": "# Diagnostics\n\nCheck restart loops, recent logs, process configuration, and environment drift first.\n",
+        "Runtime.md": "# Runtime\n\nProvider wrappers should stay modular, provider-agnostic, and easy to test.\n",
+        "Memory.md": "# Memory\n\nSession memory should override user memory when it is more specific.\n",
+        "Prompting.md": "# Prompting\n\nKeep prompts deterministic, minimal, and grounded in retrieved context.\n",
     }
     for name, content in docs.items():
         (wiki_dir / name).write_text(content, encoding="utf-8")
@@ -92,46 +106,127 @@ def seed_memory(engine: ContextEngine) -> None:
             tags=["diagnostics"],
             importance=1.0,
         ),
+        MemoryItem(
+            content="Controlled inputs should preserve accessible labels and dark styling.",
+            kind="implementation",
+            scope="system",
+            key="prompt-input-guideline",
+            tags=["ui", "component"],
+            importance=0.75,
+        ),
+        MemoryItem(
+            content="The current code task is about modular runtime wrappers.",
+            kind="session_state",
+            scope="session",
+            key="runtime-session",
+            user_id="benchmark-user",
+            session_id="bench-code",
+            tags=["code", "runtime"],
+            importance=0.95,
+        ),
     ]
     for item in seeds:
         engine.memory.add(item)
 
 
+def make_fixture() -> tuple[ContextEngine, UnifiedCognitionLayer]:
+    root = Path(tempfile.mkdtemp(prefix="reliq-bench-"))
+    wiki_dir = root / "knowledge" / "wiki"
+    memory_dir = root / "memory"
+    seed_wiki(wiki_dir)
+    engine = ContextEngine(wiki_dir=wiki_dir, memory_dir=memory_dir, knowledge_limit=3, memory_limit=3)
+    seed_memory(engine)
+    return engine, UnifiedCognitionLayer(context_engine=engine)
+
+
+def percentile(values: list[float], fraction: float) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    index = min(len(ordered) - 1, max(0, int(round((len(ordered) - 1) * fraction))))
+    return ordered[index]
+
+
 def summarize(values: list[float]) -> dict[str, float]:
     return {
+        "median_ms": round(statistics.median(values), 3),
+        "p95_ms": round(percentile(values, 0.95), 3),
         "avg_ms": round(statistics.mean(values), 3),
         "min_ms": round(min(values), 3),
         "max_ms": round(max(values), 3),
     }
 
 
-def run_benchmark(tasks: list[dict[str, Any]], iterations: int = 3) -> dict[str, Any]:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        wiki_dir = root / "knowledge" / "wiki"
-        memory_dir = root / "memory"
-        seed_wiki(wiki_dir)
-        engine = ContextEngine(wiki_dir=wiki_dir, memory_dir=memory_dir, knowledge_limit=3, memory_limit=3)
-        seed_memory(engine)
-        layer = UnifiedCognitionLayer(context_engine=engine)
+def time_case(fn: Callable[[], Any]) -> tuple[Any, float]:
+    start = time.perf_counter_ns()
+    value = fn()
+    duration_ms = (time.perf_counter_ns() - start) / 1_000_000
+    return value, round(duration_ms, 3)
 
-        timings = {
-            "build_context_ms": [],
-            "build_prompt_ms": [],
-            "memory_search_ms": [],
-            "process_interaction_ms": [],
-            "run_cognition_ms": [],
-        }
-        per_task: list[dict[str, Any]] = []
 
-        for _ in range(iterations):
-            for raw_task in tasks:
-                task = TaskSpec.from_any(raw_task)
-                _, memory_ms = time_call(engine.memory.search, task, 3)
-                context, context_ms = time_call(engine.build_context, task)
-                prompt, prompt_ms = time_call(engine.build_prompt, task)
-                cognition, cognition_ms = time_call(
-                    layer.run_cognition,
+def benchmark_case(case: str, task: TaskSpec, iterations: int) -> dict[str, Any]:
+    durations: list[float] = []
+    knowledge_hits: list[int] = []
+    memory_hits: list[int] = []
+    prompt_chars: list[int] = []
+    memory_updates: list[int] = []
+    evolution_logged: list[bool] = []
+
+    for attempt in range(WARMUPS + iterations):
+        engine, layer = make_fixture()
+
+        if case == "build_context":
+            value, duration = time_case(lambda: engine.build_context(task))
+            details = value
+            prompt_len = None
+            update_count = None
+            evolved = None
+        elif case == "build_prompt":
+            value, duration = time_case(lambda: engine.build_prompt(task))
+            details = engine.build_context(task)
+            prompt_len = len(value)
+            update_count = None
+            evolved = None
+        elif case == "prompt_from_context":
+            context = engine.build_context(task)
+            value, duration = time_case(lambda: build_prompt_from_context(context))
+            details = context
+            prompt_len = len(value)
+            update_count = None
+            evolved = None
+        elif case == "memory_search":
+            value, duration = time_case(lambda: engine.memory.search(task, 3))
+            details = value
+            prompt_len = None
+            update_count = None
+            evolved = None
+        elif case == "memory_update":
+            value, duration = time_case(lambda: engine.process_interaction(task.task, deterministic_runner(task.task), task))
+            details = value
+            prompt_len = None
+            update_count = len(value)
+            evolved = None
+        elif case == "run_cognition.persist_false":
+            value, duration = time_case(
+                lambda: layer.run_cognition(
+                    task.task,
+                    deterministic_runner,
+                    task.type,
+                    task.target,
+                    task.constraints,
+                    task.metadata,
+                    task.user_id,
+                    task.session_id,
+                    False,
+                )
+            )
+            details = value.context
+            prompt_len = len(value.prompt)
+            update_count = len(value.memory_updates)
+            evolved = value.evolution_logged
+        elif case == "run_cognition.persist_true":
+            value, duration = time_case(
+                lambda: layer.run_cognition(
                     task.task,
                     deterministic_runner,
                     task.type,
@@ -142,46 +237,91 @@ def run_benchmark(tasks: list[dict[str, Any]], iterations: int = 3) -> dict[str,
                     task.session_id,
                     True,
                 )
-                _, process_ms = time_call(engine.process_interaction, task.task, cognition.response, task)
+            )
+            details = value.context
+            prompt_len = len(value.prompt)
+            update_count = len(value.memory_updates)
+            evolved = value.evolution_logged
+        else:
+            raise ValueError(f"Unsupported benchmark case: {case}")
 
-                timings["memory_search_ms"].append(memory_ms)
-                timings["build_context_ms"].append(context_ms)
-                timings["build_prompt_ms"].append(prompt_ms)
-                timings["run_cognition_ms"].append(cognition_ms)
-                timings["process_interaction_ms"].append(process_ms)
+        if attempt < WARMUPS:
+            continue
 
-                per_task.append(
-                    {
-                        "task": task.task,
-                        "type": task.type,
-                        "knowledge_hits": len(context.knowledge),
-                        "memory_hits": len(context.memory),
-                        "prompt_chars": len(prompt),
-                        "response_chars": len(cognition.response or ""),
-                        "timings_ms": {
-                            "memory_search": memory_ms,
-                            "build_context": context_ms,
-                            "build_prompt": prompt_ms,
-                            "run_cognition": cognition_ms,
-                            "process_interaction": process_ms,
-                        },
-                    }
-                )
+        durations.append(duration)
+        if isinstance(details, BuiltContext):
+            knowledge_hits.append(len(details.knowledge))
+            memory_hits.append(len(details.memory))
+        elif isinstance(details, list):
+            knowledge_hits.append(0)
+            memory_hits.append(len(details))
+        else:
+            knowledge_hits.append(0)
+            memory_hits.append(0)
+        if prompt_len is not None:
+            prompt_chars.append(prompt_len)
+        if update_count is not None:
+            memory_updates.append(update_count)
+        if evolved is not None:
+            evolution_logged.append(evolved)
 
-        return {
-            "iterations": iterations,
-            "task_count": len(tasks),
-            "summary": {name: summarize(values) for name, values in timings.items()},
-            "tasks": per_task,
-            "memory_files": {key: str(value) for key, value in engine.memory.paths.items()},
-            "dataset_file": str(layer.evolution.path),
-        }
+    notes = []
+    if case in {"build_prompt", "run_cognition.persist_false", "run_cognition.persist_true"}:
+        notes.append("build_prompt currently triggers retrieval again through ContextEngine.build_prompt().")
+    if case == "memory_search":
+        notes.append("memory_search includes JSON write cost because access_count is persisted.")
+
+    return {
+        "case": case,
+        "task_type": task.type,
+        "iterations": iterations,
+        **summarize(durations),
+        "knowledge_hits": round(statistics.mean(knowledge_hits), 2) if knowledge_hits else 0,
+        "memory_hits": round(statistics.mean(memory_hits), 2) if memory_hits else 0,
+        "memory_updates": round(statistics.mean(memory_updates), 2) if memory_updates else 0,
+        "prompt_chars": round(statistics.mean(prompt_chars), 2) if prompt_chars else 0,
+        "evolution_logged": any(evolution_logged),
+        "notes": notes,
+    }
+
+
+def make_table(rows: list[dict[str, Any]]) -> list[str]:
+    lines = ["case | task_type | median_ms | p95_ms | knowledge_hits | memory_hits | memory_updates | prompt_chars"]
+    for row in rows:
+        lines.append(
+            f"{row['case']} | {row['task_type']} | {row['median_ms']} | {row['p95_ms']} | "
+            f"{row['knowledge_hits']} | {row['memory_hits']} | {row['memory_updates']} | {row['prompt_chars']}"
+        )
+    return lines
+
+
+def run_benchmark(tasks: list[dict[str, Any]], iterations: int = 25) -> dict[str, Any]:
+    rows: list[dict[str, Any]] = []
+    for raw_task in tasks:
+        task = TaskSpec.from_any(raw_task)
+        for case in (
+            "memory_search",
+            "build_context",
+            "prompt_from_context",
+            "build_prompt",
+            "memory_update",
+            "run_cognition.persist_false",
+            "run_cognition.persist_true",
+        ):
+            rows.append(benchmark_case(case, task, iterations))
+    return {
+        "warmups": WARMUPS,
+        "iterations": iterations,
+        "task_count": len(tasks),
+        "results": rows,
+        "table": make_table(rows),
+    }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Benchmark the Reliq Context Engine cognition flow.")
     parser.add_argument("--tasks-file", default=None, help="Optional JSON file with benchmark task specs.")
-    parser.add_argument("--iterations", type=int, default=3, help="How many times to run each task.")
+    parser.add_argument("--iterations", type=int, default=25, help="Measured iterations per case after warmup.")
     parser.add_argument("--output", default=None, help="Optional file path for JSON benchmark output.")
     args = parser.parse_args()
 

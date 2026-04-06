@@ -2,18 +2,34 @@
   {
     "task": "Create a dark themed prompt input component for the dashboard.",
     "type": "ui",
+    "target": "PromptInput.tsx",
+    "constraints": [
+      "controlled input",
+      "minimal styling",
+      "accessible labels"
+    ],
+    "metadata": {
+      "framework": "react",
+      "surface": "desktop"
+    },
     "user_id": "benchmark-user",
     "session_id": "bench-ui"
   },
   {
     "task": "Diagnose a PM2 restart loop and suggest the most likely root cause.",
     "type": "diagnostics",
+    "metadata": {
+      "surface": "ops"
+    },
     "user_id": "benchmark-user",
     "session_id": "bench-diag"
   },
   {
     "task": "Implement a modular API wrapper for a local runtime provider.",
     "type": "code",
+    "metadata": {
+      "surface": "runtime"
+    },
     "user_id": "benchmark-user",
     "session_id": "bench-code"
   }
