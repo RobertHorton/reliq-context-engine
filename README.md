@@ -1,12 +1,14 @@
 # Reliq Context Engine
 
-Task-scoped context building for Reliq and other AI systems.
+Task-scoped context, scoped memory, and a lightweight cognition layer for Reliq and other AI systems.
 
 This repo is the better version of "context mode":
 - no chat-history stuffing
 - no prompt drift
 - no giant context dumps
 - explicit task -> retrieval -> memory -> prompt flow
+- structured user / system / session memory
+- reusable cognition and plugin surfaces
 
 ## What It Does
 
@@ -17,6 +19,7 @@ Given a task, the engine:
    - an optional FAISS index
 3. injects the most relevant memory items
 4. builds a deterministic prompt from that context
+5. optionally stores memory updates and logs usable training/evolution traces
 
 Core principle:
 - never send full chat history
@@ -26,8 +29,15 @@ Core principle:
 
 - [context_engine.py](src/reliq_context_engine/context_engine.py): orchestrates task -> context -> prompt
 - [retriever.py](src/reliq_context_engine/retriever.py): hybrid FAISS + wiki retrieval
-- [memory_integration.py](src/reliq_context_engine/memory_integration.py): structured memory store and search
+- [memory_store.py](src/reliq_context_engine/memory_store.py): per-file and multi-scope memory persistence
+- [memory_manager.py](src/reliq_context_engine/memory_manager.py): read/write control for user, system, and session memory
+- [memory_extractor.py](src/reliq_context_engine/memory_extractor.py): heuristics for extracting durable signals from interactions
+- [memory_retriever.py](src/reliq_context_engine/memory_retriever.py): scoped retrieval and ranking
+- [memory_integration.py](src/reliq_context_engine/memory_integration.py): compatibility exports for memory primitives
 - [prompt_builder.py](src/reliq_context_engine/prompt_builder.py): deterministic prompt construction
+- [cognition.py](src/reliq_context_engine/cognition.py): unified cognition entrypoint for task -> context -> prompt -> optional memory updates
+- [evolution.py](src/reliq_context_engine/evolution.py): lightweight dataset/evolution logging
+- [plugin_interface.py](src/reliq_context_engine/plugin_interface.py): importable plugin surface for other AI systems
 - [api.py](src/reliq_context_engine/api.py): FastAPI surface for other tools and plugins
 - [cli.py](src/reliq_context_engine/cli.py): simple command-line entrypoint
 - [mcp_server.py](src/reliq_context_engine/mcp_server.py): MCP server surface for direct tool use by Codex, Reliq, and other AI systems
@@ -50,7 +60,12 @@ pip install -r requirements.txt
 
 Default local paths:
 - `knowledge/wiki/` for markdown knowledge
-- `memory/memory.json` for structured memory
+- `memory/user.json` for shared user memory
+- `memory/system.json` for shared system memory
+- `memory/session.json` for default session memory
+- `memory/users/*.json` for per-user scoped memory
+- `memory/sessions/*.json` for per-session scoped memory
+- `datasets/train.jsonl` for optional evolution logging
 
 These are used automatically if you do not set environment variables.
 
@@ -66,6 +81,18 @@ Without them, the engine still works using wiki + keyword retrieval.
 python -m reliq_context_engine.cli --task "Create a dark themed prompt input component" --task-type ui
 ```
 
+Store response-derived memory in one pass:
+
+```powershell
+python -m reliq_context_engine.cli `
+  --task "We built a dark prompt input component" `
+  --task-type ui `
+  --user-id robert `
+  --session-id sess-1 `
+  --response "Implemented the component and kept the dark theme consistent." `
+  --cognition
+```
+
 ## Run The API
 
 ```powershell
@@ -75,8 +102,11 @@ uvicorn reliq_context_engine.api:app --reload --host 127.0.0.1 --port 8041
 Key endpoints:
 - `POST /context/build`
 - `POST /context/prompt`
+- `POST /cognition/run`
 - `POST /memory/items`
+- `POST /memory/process`
 - `GET /memory/search`
+- `GET /memory/snapshot`
 
 ## Environment Variables
 
@@ -84,10 +114,12 @@ Key endpoints:
 - `RELIQ_FAISS_INDEX`: path to FAISS index file
 - `RELIQ_FAISS_METADATA`: path to metadata JSON for FAISS chunks
 - `RELIQ_MEMORY_FILE`: path to JSON memory store
+- `RELIQ_MEMORY_DIR`: path to the memory directory
+- `RELIQ_DATASET_FILE`: path to the JSONL evolution log
 
 ## Plugin / Tool Surface
 
-Other AI systems can use this in three ways:
+Other AI systems can use this in four ways:
 
 1. Library
 
@@ -118,8 +150,12 @@ python -m reliq_context_engine.cli --task "debug pm2 restart loop" --task-type d
 The MCP server exposes these tools:
 - `build_context`
 - `build_prompt`
+- `run_cognition`
 - `add_memory_item`
+- `process_interaction`
 - `search_memory`
+- `get_memory`
+- `prune_memory`
 - `health`
 
 Example startup:
@@ -148,12 +184,15 @@ If you want to point the engine at an external Reliq knowledge base instead, cop
 
 - Context must always be task-specific
 - Context must be minimal
-- Memory must be structured
+- Memory must be structured and scoped
 - Retrieval should prefer top relevant results over broad dumps
 - Chat history is not a primary context source
+- User preferences should survive across sessions
+- Session memory should take precedence over shared memory when it is relevant
 
 ## Suggested Next Steps
 
 - add FAISS chunk builder
 - add more task-aware retrieval profiles
+- add API and MCP smoke tests
 - add install scripts for Codex / Claude Desktop / other MCP hosts

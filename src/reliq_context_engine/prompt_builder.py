@@ -18,7 +18,14 @@ def build_prompt(context: BuiltContext, rules: list[str] | None = None) -> str:
         for idx, item in enumerate(context.knowledge, start=1)
     ) or "None"
     memory_block = "\n\n".join(
-        f"[{idx}] Kind: {item.kind}\nTags: {', '.join(item.tags) or 'none'}\nScore: {item.score}\n{item.content}"
+        (
+            f"[{idx}] Scope: {item.scope}\n"
+            f"Kind: {item.kind}\n"
+            f"Key: {item.key or 'none'}\n"
+            f"Tags: {', '.join(item.tags) or 'none'}\n"
+            f"Score: {item.score}\n"
+            f"{item.content}"
+        )
         for idx, item in enumerate(context.memory, start=1)
     ) or "None"
     constraints = "\n".join(f"- {item}" for item in context.task.constraints) or "- None"
@@ -27,6 +34,8 @@ def build_prompt(context: BuiltContext, rules: list[str] | None = None) -> str:
     return f"""TASK
 Type: {context.task.type}
 Target: {context.task.target or 'None'}
+User: {context.task.user_id or 'None'}
+Session: {context.task.session_id or 'None'}
 Instruction: {context.task.task}
 
 CONSTRAINTS

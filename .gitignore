@@ -10,6 +10,15 @@ build/
 .DS_Store
 memory/*
 !memory/.gitkeep
+!memory/user.json
+!memory/system.json
+!memory/session.json
+!memory/users/
+!memory/users/.gitkeep
+!memory/sessions/
+!memory/sessions/.gitkeep
 knowledge/faiss/*
 !knowledge/faiss/.gitkeep
+datasets/*
+!datasets/.gitkeep
 *.db

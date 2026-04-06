@@ -1,7 +1,7 @@
 {
   "name": "reliq-context-engine",
-  "version": "0.1.0",
-  "description": "Task-scoped context building, retrieval, and prompt generation for Reliq and other AI systems.",
+  "version": "0.2.0",
+  "description": "Task-scoped context, scoped memory, and cognition tooling for Reliq and other AI systems.",
   "author": {
     "name": "Robert Horton",
     "url": "https://github.com/RobertHorton"
@@ -19,14 +19,15 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Reliq Context Engine",
-    "shortDescription": "Task-scoped context for AI systems.",
-    "longDescription": "Builds minimal structured context from wiki knowledge, optional FAISS retrieval, and shared memory so agents can work without chat-history prompt stuffing.",
+    "shortDescription": "Context, memory, and cognition for AI systems.",
+    "longDescription": "Builds minimal structured context from wiki knowledge, optional FAISS retrieval, and scoped user/system/session memory so agents can work without chat-history prompt stuffing.",
     "developerName": "Robert Horton",
     "category": "Developer Tools",
     "capabilities": [
       "Read",
       "Write",
       "Structured Context",
+      "Scoped Memory",
       "MCP"
     ],
     "websiteURL": "https://github.com/RobertHorton/reliq-context-engine",
@@ -34,8 +35,8 @@
     "termsOfServiceURL": "https://github.com/RobertHorton/reliq-context-engine",
     "defaultPrompt": [
       "Build context for this implementation task.",
-      "Search memory relevant to this debugging issue.",
-      "Generate a deterministic prompt for this feature request."
+      "Search scoped memory for this debugging issue.",
+      "Generate a cognition payload for this feature request."
     ],
     "brandColor": "#2563EB"
   }
